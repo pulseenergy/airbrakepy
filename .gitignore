@@ -1,0 +1,12 @@
+# IntelliJ files
+.idea
+*.iml
+
+# build/deploy files
+build
+dist
+AirbrakePy.egg-info
+*.pyc
+
+# generated files
+airbrakepy/metadata.py
