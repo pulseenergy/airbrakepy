@@ -58,8 +58,8 @@ class AirbrakeSender(Thread):
 
 
 class AirbrakeHandler(logging.Handler):
-    def __init__(self, api_key, environment=None, component_name=None, node_name=None, timeout_in_ms=30000,
-                 use_ssl=False, airbrake_url=_DEFAULT_AIRBRAKE_URL):
+    def __init__(self, api_key, environment=None, component_name=None, node_name=None,
+                 use_ssl=False, timeout_in_ms=30000, airbrake_url=_DEFAULT_AIRBRAKE_URL):
         logging.Handler.__init__(self)
         self.api_key = api_key
         self.environment = environment
@@ -71,8 +71,14 @@ class AirbrakeHandler(logging.Handler):
         self.worker.start()
 
     def emit(self, record):
-        message = self._generate_xml(record)
-        self.work_queue.put(message)
+        try:
+            message = self._generate_xml(record)
+            self.work_queue.put(message)
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except:
+            self.handleError(record)
+
 
     def close(self):
         self.work_queue.put(_POISON, False)
@@ -110,7 +116,7 @@ class AirbrakeHandler(logging.Handler):
                 xml << ('environment-name', self.environment)
             with xml.error:
                 xml << ('class', '' if exn is None else exn.__class__.__name__)
-                xml << ('message', record.msg if exn is None else "{0}: {1}".format(record.msg, str(exn)))
+                xml << ('message', self.format(record))
                 with xml.backtrace:
                     if trace is None:
                         [xml << ('line', {'file': '', 'number': '', 'method': ''})]

@@ -1,7 +1,7 @@
 import logging
 import ConfigParser
 import os
-from airbrakepy.logging.AirbrakeHandler import AirbrakeHandler
+from airbrakepy.logging.handlers import AirbrakeHandler
 
 if __name__=='__main__':
     configFilePath = os.path.join(os.path.expanduser("~"), ".airbrakepy")
@@ -19,9 +19,9 @@ if __name__=='__main__':
     try:
         raise Exception('bam, pow')
     except Exception as e:
-        logger.error("test with exception", exc_info=e)
+        logger.error("test with exception", exc_info=True)
 
     logger.error("after exception")
 
     for i in range(20):
-        logger.error("logging error {0}".format(i))
+        logger.error("logging error %d", i)

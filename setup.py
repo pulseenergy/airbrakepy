@@ -1,3 +1,6 @@
+from ez_setup import use_setuptools
+use_setuptools()
+
 from setuptools import setup, find_packages
 
 APP_NAME = "AirbrakePy"
@@ -31,7 +34,7 @@ setup(
     long_description="Provides a logging.Handler implementation that can be configured to alert Airbrake (http://airbrakeapp.com).",
     license = "Apache License 2.0",
     keywords = "airbrake python logging",
-    url = "http://github.com/pulseenergy/airbrakepy",
-    download_url = "http://github.com/pulseenergy/airbrakepy",
+    url = SOURCE_URL,
+    download_url = SOURCE_URL,
     zip_safe=True
 )

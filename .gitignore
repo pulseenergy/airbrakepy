@@ -10,3 +10,4 @@ AirbrakePy.egg-info
 
 # generated files
 airbrakepy/metadata.py
+.coverage
