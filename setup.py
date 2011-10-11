@@ -1,4 +1,6 @@
+import os
 from ez_setup import use_setuptools
+
 use_setuptools()
 
 from setuptools import setup, find_packages
@@ -6,6 +8,10 @@ from setuptools import setup, find_packages
 APP_NAME = "AirbrakePy"
 VERSION = "1.0.0a1"
 SOURCE_URL = "http://github.com/pulseenergy/airbrakepy"
+
+def read(fname):
+    return open(os.path.join(os.path.dirname(__file__), fname)).read()
+
 
 def writeVersion():
     metadata_py = open('airbrakepy/metadata.py', 'w')
@@ -16,25 +22,30 @@ version='%(version)s'
 source_url='%(source_url)s'
     """
     try:
-        metadata_py.write(content % { 'app_name': APP_NAME, 'version': VERSION, 'source_url': SOURCE_URL })
+        metadata_py.write(content % {'app_name': APP_NAME, 'version': VERSION, 'source_url': SOURCE_URL})
     finally:
         metadata_py.close()
 
 writeVersion()
 
 setup(
-    name = "AirbrakePy",
-    version = VERSION,
-    packages = find_packages(),
-    install_requires=[ "xmlbuilder>=0.9" ],
-    author = "Pulse Energy",
-    maintainer = "Tim Meighen",
-    maintainer_email = "tim at pulseenergy dot com",
-    description = "Airbrake notifier for Python logging framework",
-    long_description="Provides a logging.Handler implementation that can be configured to alert Airbrake (http://airbrakeapp.com).",
-    license = "Apache License 2.0",
-    keywords = "airbrake python logging",
-    url = SOURCE_URL,
-    download_url = SOURCE_URL,
+    name="AirbrakePy",
+    version=VERSION,
+    packages=find_packages(),
+    install_requires=["xmlbuilder>=0.9"],
+    author="Tim Meighen",
+    author_email="tim at pulseenergy dot com",
+    maintainer="Pulse Energy",
+    description="Airbrake notifier for Python logging framework",
+    long_description=read("README.md"),
+    classifiers=[
+        "Development Status :: 3 - Alpha",
+        "Topic :: System :: Logging",
+        "License :: OSI Approved :: Apache Software License",
+        ],
+    license="Apache License 2.0",
+    keywords="airbrake python logging",
+    url=SOURCE_URL,
+    download_url=SOURCE_URL,
     zip_safe=True
 )
