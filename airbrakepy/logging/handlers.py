@@ -1,9 +1,10 @@
-from Queue import Queue
 import logging
 import traceback
 import urllib2
+import sys
 import xmlbuilder
 from airbrakepy import __version__ ,__source_url__, __app_name__
+from Queue import Queue
 from threading import Thread
 
 _NOTIFIER_NAME = 'AirbrakePy'
@@ -16,6 +17,7 @@ class AirbrakeSender(Thread):
         self.work_queue = work_queue
         self.timeout_in_seconds = timeout_in_ms / 1000.0
         self.service_url = service_url
+        self.logger = logging.getLogger(__name__)
 
     def run(self):
         while True:
@@ -25,7 +27,9 @@ class AirbrakeSender(Thread):
                     break
                 self._sendMessage(message)
             except Exception as e:
-                print("{0}: {1}".format(e.__class__.__name__, str(e)))
+                sys.stderr.write("{0}: {1}".format(e.__class__.__name__, str(e)))
+            finally:
+                self.work_queue.task_done()
 
     def _sendHttpRequest(self, headers, message):
         request = urllib2.Request(self.service_url, message, headers)
@@ -69,6 +73,7 @@ class AirbrakeHandler(logging.Handler):
         self.worker = AirbrakeSender(self.work_queue, timeout_in_ms, self._serviceUrl(airbrake_url, use_ssl))
         self.worker.setDaemon(True)
         self.worker.start()
+        self.logger = logging.getLogger(__name__)
 
     def emit(self, record):
         try:
@@ -82,9 +87,11 @@ class AirbrakeHandler(logging.Handler):
 
     def close(self):
         self.work_queue.put(_POISON, False)
+        self.logger.info("Waiting for remaining items to be sent to Airbrake. Queue size {0}".format(self.work_queue.qsize()))
+        self.work_queue.join()
         self.worker.join(timeout=5.0)
         if self.worker.isAlive():
-            print "AirbrakeSender did not exit in an appropriate amount of time...terminating"
+            self.logger.warn("AirbrakeSender did not exit in an appropriate amount of time (queue size {0})...exiting".format(self.work_queue.qsize()))
 
         logging.Handler.close(self)
 

@@ -1,6 +1,7 @@
 import logging
 import ConfigParser
 import os
+import time
 from airbrakepy.logging.handlers import AirbrakeHandler
 
 if __name__=='__main__':
@@ -9,7 +10,7 @@ if __name__=='__main__':
     parser = ConfigParser.SafeConfigParser()
     parser.read(configFilePath)
     api_key = parser.get("airbrake", "api_key")
-    logging.basicConfig()
+    logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger("test-logger")
     handler = AirbrakeHandler(api_key, environment='dev', component_name='integration-test', node_name='server')
     logger.addHandler(handler)
@@ -18,10 +19,11 @@ if __name__=='__main__':
 
     try:
         raise Exception('bam, pow')
-    except Exception as e:
+    except Exception:
         logger.error("test with exception", exc_info=True)
 
     logger.error("after exception")
 
-    for i in range(20):
-        logger.error("logging error %d", i)
+    for i in range(10):
+        logger.error("logging error {0}".format(i))
+
