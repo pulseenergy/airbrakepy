@@ -1,35 +1,40 @@
 import logging
 import traceback
+import multiprocessing
 import urllib2
 import sys
 import xmlbuilder
 from airbrakepy import __version__ ,__source_url__, __app_name__
-from Queue import Queue
-from threading import Thread
 
-_NOTIFIER_NAME = 'AirbrakePy'
-_DEFAULT_AIRBRAKE_URL = 'http://airbrakeapp.com/notifier_api/v2/notices'
 _POISON = "xxxxPOISONxxxx"
 
-class AirbrakeSender(Thread):
+class AirbrakeSender(multiprocessing.Process):
     def __init__(self, work_queue, timeout_in_ms, service_url):
-        Thread.__init__(self)
+        multiprocessing.Process.__init__(self, name="AirbrakeSender")
         self.work_queue = work_queue
         self.timeout_in_seconds = timeout_in_ms / 1000.0
         self.service_url = service_url
-        self.logger = logging.getLogger(__name__)
+
+    def _handle_error(self):
+        ei = sys.exc_info()
+        try:
+            traceback.print_exception(ei[0], ei[1], ei[2],
+                                      file=sys.stderr)
+        except IOError:
+            pass
+        finally:
+            del ei
 
     def run(self):
+        global _POISON
         while True:
             try:
                 message = self.work_queue.get()
-                if message is _POISON:
+                if message == _POISON:
                     break
                 self._sendMessage(message)
-            except Exception as e:
-                sys.stderr.write("{0}: {1}".format(e.__class__.__name__, str(e)))
-            finally:
-                self.work_queue.task_done()
+            except Exception:
+                self._handle_error()
 
     def _sendHttpRequest(self, headers, message):
         request = urllib2.Request(self.service_url, message, headers)
@@ -43,7 +48,6 @@ class AirbrakeSender(Thread):
     def _sendMessage(self, message):
         headers = {"Content-Type": "text/xml"}
         status = self._sendHttpRequest(headers, message)
-
         if status == 200:
             return
 
@@ -60,6 +64,7 @@ class AirbrakeSender(Thread):
 
         raise Exception(exceptionMessage)
 
+_DEFAULT_AIRBRAKE_URL = "http://airbrakeapp.com/notifier_api/v2/notices"
 
 class AirbrakeHandler(logging.Handler):
     def __init__(self, api_key, environment=None, component_name=None, node_name=None,
@@ -69,9 +74,9 @@ class AirbrakeHandler(logging.Handler):
         self.environment = environment
         self.component_name = component_name
         self.node_name = node_name
-        self.work_queue = Queue()
+        self.work_queue = multiprocessing.Queue()
+        self.work_queue.cancel_join_thread()
         self.worker = AirbrakeSender(self.work_queue, timeout_in_ms, self._serviceUrl(airbrake_url, use_ssl))
-        self.worker.setDaemon(True)
         self.worker.start()
         self.logger = logging.getLogger(__name__)
 
@@ -79,6 +84,8 @@ class AirbrakeHandler(logging.Handler):
         try:
             message = self._generate_xml(record)
             self.work_queue.put(message)
+            if self.logger.isEnabledFor(logging.DEBUG):
+                self.logger.debug("Airbrake message queued for delivery")
         except (KeyboardInterrupt, SystemExit):
             raise
         except:
@@ -86,12 +93,21 @@ class AirbrakeHandler(logging.Handler):
 
 
     def close(self):
-        self.work_queue.put(_POISON, False)
-        self.logger.info("Waiting for remaining items to be sent to Airbrake. Queue size {0}".format(self.work_queue.qsize()))
-        self.work_queue.join()
-        self.worker.join(timeout=5.0)
-        if self.worker.isAlive():
-            self.logger.warn("AirbrakeSender did not exit in an appropriate amount of time (queue size {0})...exiting".format(self.work_queue.qsize()))
+        if self.work_queue:
+            if self.logger.isEnabledFor(logging.DEBUG):
+                self.logger.debug("POISONING QUEUE")
+            global _POISON
+            self.work_queue.put(_POISON, False)
+            self.work_queue.close()
+            self.work_queue = None
+
+        if self.worker:
+            self.logger.info("Waiting for remaining items to be sent to Airbrake.")
+            self.worker.join(timeout=5.0)
+            if self.worker.is_alive():
+                self.logger.info("AirbrakeSender did not exit in an appropriate amount of time...terminating")
+                self.worker.terminate()
+            self.worker = None
 
         logging.Handler.close(self)
 

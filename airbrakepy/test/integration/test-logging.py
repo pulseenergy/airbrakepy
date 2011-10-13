@@ -27,3 +27,4 @@ if __name__=='__main__':
     for i in range(10):
         logger.error("logging error {0}".format(i))
 
+    logging.shutdown()
