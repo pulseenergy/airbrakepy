@@ -117,7 +117,6 @@ class AirbrakeHandler(logging.Handler):
         else:
             return airbrake_url.replace('https://', 'http://', 1)
 
-
     #
     # This is largely based on the code example presented here:
     #   http://robots.thoughtbot.com/post/323503523/writing-a-hoptoad-notifier-contacting-the-toad
@@ -127,6 +126,10 @@ class AirbrakeHandler(logging.Handler):
         trace = None
         if not record.exc_info is None:
             _, exn, trace = record.exc_info
+
+        message = record.msg % record.args
+        if exn:
+            message = "{0}: {1}".format(message, str(exn))
 
         xml = xmlbuilder.XMLBuilder()
         with xml.notice(version=2.0):
@@ -139,13 +142,13 @@ class AirbrakeHandler(logging.Handler):
                 xml << ('environment-name', self.environment)
             with xml.error:
                 xml << ('class', '' if exn is None else exn.__class__.__name__)
-                xml << ('message', self.format(record))
+                xml << ('message', message)
                 with xml.backtrace:
                     if trace is None:
                         [xml << ('line', {'file': '', 'number': '', 'method': ''})]
                     else:
-                        [xml << ('line', {'file': filename, 'number': line_number, 'method': function_name})\
-                         for filename, line_number, function_name, _ in traceback.extract_tb(trace)]
+                        [xml << ('line', {'file': filename, 'number': line_number, 'method': "{0}: {1}".format(function_name, text)})\
+                         for filename, line_number, function_name, text in traceback.extract_tb(trace)]
 
         return str(xml)
 

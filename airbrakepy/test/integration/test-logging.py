@@ -4,6 +4,17 @@ import os
 import time
 from airbrakepy.logging.handlers import AirbrakeHandler
 
+def method_three():
+    raise StandardError('bam, pow')
+
+
+def method_two():
+    method_three()
+
+
+def method_one():
+    method_two()
+
 if __name__=='__main__':
     configFilePath = os.path.join(os.path.expanduser("~"), ".airbrakepy")
     print(configFilePath)
@@ -18,13 +29,10 @@ if __name__=='__main__':
     logger.error("before exception")
 
     try:
-        raise Exception('bam, pow')
-    except Exception:
+        method_one()
+    except StandardError:
         logger.error("test with exception", exc_info=True)
 
     logger.error("after exception")
-
-    for i in range(10):
-        logger.error("logging error {0}".format(i))
 
     logging.shutdown()
