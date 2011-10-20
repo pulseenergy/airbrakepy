@@ -157,6 +157,5 @@ class AirbrakeHandler(logging.Handler):
                     else:
                         [xml << ('line', {'file': filename, 'number': line_number, 'method': "{0}: {1}".format(function_name, text)})\
                          for filename, line_number, function_name, text in traceback.extract_tb(trace)]
-        print str(xml)
         return str(xml)
 
