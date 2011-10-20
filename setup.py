@@ -6,7 +6,7 @@ use_setuptools()
 from setuptools import setup, find_packages
 
 APP_NAME = "AirbrakePy"
-VERSION = "1.0.0a3"
+VERSION = "1.0.0a4"
 SOURCE_URL = "http://github.com/pulseenergy/airbrakepy"
 
 def read(fname):
