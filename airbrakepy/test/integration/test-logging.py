@@ -32,6 +32,7 @@ if __name__=='__main__':
         method_one()
     except StandardError:
         logger.error("test with exception", exc_info=True)
+        logger.error("test without exception", exc_info=False)
 
     logger.error("after exception")
 

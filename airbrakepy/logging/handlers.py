@@ -1,3 +1,4 @@
+import inspect
 import logging
 import traceback
 import multiprocessing
@@ -62,7 +63,7 @@ class AirbrakeSender(multiprocessing.Process):
         elif status == 503:
             exceptionMessage = "Service unavailable. You may be over your quota."
 
-        raise Exception(exceptionMessage)
+        raise StandardError(exceptionMessage)
 
 _DEFAULT_AIRBRAKE_URL = "http://airbrakeapp.com/notifier_api/v2/notices"
 
@@ -124,10 +125,11 @@ class AirbrakeHandler(logging.Handler):
     def _generate_xml(self, record):
         exn = None
         trace = None
-        if not record.exc_info is None:
+        if record.exc_info:
             _, exn, trace = record.exc_info
 
-        message = record.msg % record.args
+        message = record.getMessage()
+
         if exn:
             message = "{0}: {1}".format(message, str(exn))
 
@@ -153,7 +155,7 @@ class AirbrakeHandler(logging.Handler):
                 xml << ('message', message)
                 with xml.backtrace:
                     if trace is None:
-                        [xml << ('line', {'file': '', 'number': '', 'method': ''})]
+                        [xml << ('line', {'file': record.pathname, 'number': record.lineno, 'method': record.funcName})]
                     else:
                         [xml << ('line', {'file': filename, 'number': line_number, 'method': "{0}: {1}".format(function_name, text)})\
                          for filename, line_number, function_name, text in traceback.extract_tb(trace)]
