@@ -6,7 +6,7 @@ use_setuptools()
 from setuptools import setup, find_packages
 
 APP_NAME = "AirbrakePy"
-VERSION = "1.0.0a5"
+VERSION = "1.0.0b1"
 SOURCE_URL = "http://github.com/pulseenergy/airbrakepy"
 
 def read(fname):
@@ -32,7 +32,7 @@ setup(
     name="AirbrakePy",
     version=VERSION,
     packages=find_packages(),
-    install_requires=["xmlbuilder>=0.9"],
+    install_requires=["xmlbuilder >= 0.9, < 1.0"],
     author="Tim Meighen",
     author_email="tim at pulseenergy dot com",
     maintainer="Pulse Energy",
